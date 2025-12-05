@@ -1,5 +1,6 @@
 import uvicorn
 import argparse
+import os
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the FastAPI server")
@@ -7,14 +8,21 @@ if __name__ == "__main__":
         "--port", type=int, required=True, help="Port number to run the server on"
     )
     parser.add_argument(
+        "--host", type=str, default=None, help="Host to bind to (default: 0.0.0.0 for Docker, 127.0.0.1 otherwise)"
+    )
+    parser.add_argument(
         "--reload", type=str, default="false", help="Reload the server on code changes"
     )
     args = parser.parse_args()
     reload = args.reload == "true"
     
+    # Default to 0.0.0.0 for Docker containers (accessible from other containers)
+    # Use 127.0.0.1 only if explicitly set or in dev mode
+    host = args.host or os.getenv("HOST", "0.0.0.0")
+    
     uvicorn.run(
         "api.main:app",
-        host="127.0.0.1",
+        host=host,
         port=args.port,
         log_level="info",
         reload=reload,
