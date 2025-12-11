@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
     headless: true,
+    timeout: 60000, // Increase launch timeout to 60 seconds
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -27,6 +28,8 @@ export async function POST(req: NextRequest) {
       "--disable-renderer-backgrounding",
       "--disable-features=TranslateUI",
       "--disable-ipc-flooding-protection",
+      "--single-process", // Run in single process mode to reduce memory usage
+      "--disable-extensions",
     ],
   });
   const page = await browser.newPage();
@@ -34,7 +37,8 @@ export async function POST(req: NextRequest) {
   page.setDefaultNavigationTimeout(300000);
   page.setDefaultTimeout(300000);
 
-  await page.goto(`http://localhost/pdf-maker?id=${id}`, {
+  // Puppeteer runs in the same container as Next.js, so use localhost:3000
+  await page.goto(`http://localhost:3000/pdf-maker?id=${id}`, {
     waitUntil: "networkidle0",
     timeout: 300000,
   });

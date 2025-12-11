@@ -1,5 +1,7 @@
 import asyncio
-from typing import List, Tuple
+import logging
+from datetime import datetime
+from typing import List, Tuple, Optional
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from models.sql.slide import SlideModel
@@ -8,52 +10,86 @@ from services.image_generation_service import ImageGenerationService
 from utils.asset_directory_utils import get_images_directory
 from utils.dict_utils import get_dict_at_path, get_dict_paths_with_key, set_dict_at_path
 
+logger = logging.getLogger(__name__)
+
 
 async def process_slide_and_fetch_assets(
     image_generation_service: ImageGenerationService,
     slide: SlideModel,
+    stream_request_id: Optional[str] = None,
+    slide_index: Optional[int] = None,
 ) -> List[ImageAsset]:
+    log_prefix = f"[STREAM-{stream_request_id}]" if stream_request_id else "[ASSETS]"
+    slide_log = f"slide {slide_index}" if slide_index else f"slide index {slide.index}"
+    
+    logger.info(f"{log_prefix} Starting asset processing for {slide_log} (presentation: {slide.presentation})")
+    start_time = datetime.now()
 
     async_tasks = []
 
     image_paths = get_dict_paths_with_key(slide.content, "__image_prompt__")
     icon_paths = get_dict_paths_with_key(slide.content, "__icon_query__")
+    
+    logger.info(f"{log_prefix} {slide_log}: Found {len(image_paths)} image prompts, {len(icon_paths)} icon queries")
 
-    for image_path in image_paths:
+    for idx, image_path in enumerate(image_paths):
         __image_prompt__parent = get_dict_at_path(slide.content, image_path)
+        image_prompt = __image_prompt__parent["__image_prompt__"]
+        logger.info(f"{log_prefix} {slide_log}: Creating image generation task {idx+1}/{len(image_paths)} - prompt: {image_prompt[:100]}...")
         async_tasks.append(
             image_generation_service.generate_image(
                 ImagePrompt(
-                    prompt=__image_prompt__parent["__image_prompt__"],
-                )
+                    prompt=image_prompt,
+                ),
+                stream_request_id=stream_request_id,
+                slide_index=slide_index,
+                image_index=idx+1,
             )
         )
 
-    for icon_path in icon_paths:
+    for idx, icon_path in enumerate(icon_paths):
         __icon_query__parent = get_dict_at_path(slide.content, icon_path)
+        icon_query = __icon_query__parent["__icon_query__"]
+        logger.info(f"{log_prefix} {slide_log}: Creating icon search task {idx+1}/{len(icon_paths)} - query: {icon_query}")
         async_tasks.append(
-            ICON_FINDER_SERVICE.search_icons(__icon_query__parent["__icon_query__"])
+            ICON_FINDER_SERVICE.search_icons(icon_query)
         )
 
-    results = await asyncio.gather(*async_tasks)
+    logger.info(f"{log_prefix} {slide_log}: Executing {len(async_tasks)} asset tasks")
+    task_start_time = datetime.now()
+    try:
+        results = await asyncio.gather(*async_tasks)
+        task_duration = (datetime.now() - task_start_time).total_seconds()
+        logger.info(f"{log_prefix} {slide_log}: All {len(async_tasks)} asset tasks completed in {task_duration:.2f}s")
+    except Exception as e:
+        task_duration = (datetime.now() - task_start_time).total_seconds()
+        logger.error(f"{log_prefix} {slide_log}: Asset tasks failed after {task_duration:.2f}s: {str(e)}", exc_info=True)
+        raise
     results.reverse()
 
     return_assets = []
-    for image_path in image_paths:
+    for idx, image_path in enumerate(image_paths):
         image_dict = get_dict_at_path(slide.content, image_path)
         result = results.pop()
         if isinstance(result, ImageAsset):
             return_assets.append(result)
             image_dict["__image_url__"] = result.path
+            logger.debug(f"{log_prefix} {slide_log}: Image {idx+1} generated as asset: {result.path}")
         else:
             image_dict["__image_url__"] = result
+            logger.debug(f"{log_prefix} {slide_log}: Image {idx+1} generated as URL: {result}")
         set_dict_at_path(slide.content, image_path, image_dict)
 
-    for icon_path in icon_paths:
+    for idx, icon_path in enumerate(icon_paths):
         icon_dict = get_dict_at_path(slide.content, icon_path)
-        icon_dict["__icon_url__"] = results.pop()[0]
+        icon_result = results.pop()[0]
+        icon_dict["__icon_url__"] = icon_result
         set_dict_at_path(slide.content, icon_path, icon_dict)
+        logger.debug(f"{log_prefix} {slide_log}: Icon {idx+1} found: {icon_result}")
 
+    total_duration = (datetime.now() - start_time).total_seconds()
+    logger.info(f"{log_prefix} {slide_log}: Asset processing completed in {total_duration:.2f}s. Returning {len(return_assets)} assets")
+    
     return return_assets
 
 

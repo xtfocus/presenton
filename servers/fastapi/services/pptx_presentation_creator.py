@@ -74,6 +74,9 @@ class PptxPresentationCreator:
             for each_shape in self._ppt_model.shapes:
                 if isinstance(each_shape, PptxPictureBoxModel):
                     image_path = each_shape.picture.path
+                    # Skip placeholder images - they don't need to be downloaded
+                    if "/static/images/placeholder.jpg" in image_path or "/static/icons/placeholder" in image_path:
+                        continue
                     if image_path.startswith("http"):
                         if "app_data/" in image_path:
                             relative_path = image_path.split("app_data/")[1]
@@ -89,6 +92,9 @@ class PptxPresentationCreator:
             for each_shape in each_slide.shapes:
                 if isinstance(each_shape, PptxPictureBoxModel):
                     image_path = each_shape.picture.path
+                    # Skip placeholder images - they don't need to be downloaded
+                    if "/static/images/placeholder.jpg" in image_path or "/static/icons/placeholder" in image_path:
+                        continue
                     if image_path.startswith("http"):
                         if "app_data" in image_path:
                             relative_path = image_path.split("app_data/")[1]
@@ -176,6 +182,10 @@ class PptxPresentationCreator:
 
     def add_picture(self, slide: Slide, picture_model: PptxPictureBoxModel):
         image_path = picture_model.picture.path
+        # Skip placeholder images - they don't exist as local files
+        if "/static/images/placeholder.jpg" in image_path or "/static/icons/placeholder" in image_path:
+            print(f"Skipping placeholder image: {image_path}")
+            return
         if (
             picture_model.clip
             or picture_model.border_radius

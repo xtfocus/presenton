@@ -357,15 +357,35 @@ export const LayoutProvider: React.FC<{
     const templateLayoutsCache = new Map<string, LayoutInfo[]>();
     const fullDataByTemplateID = new Map<string, FullDataInfo[]>();
     try {
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      console.log(`[LayoutContext] Loading custom layouts...`);
       const customTemplateResponse = await fetch(
         `/api/v1/ppt/template-management/summary`,
         {
+          signal: controller.signal,
           headers: {
             ...getHeader(),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           }
         }
       );
+      clearTimeout(timeoutId);
+      
+      if (!customTemplateResponse.ok) {
+        console.warn(`[LayoutContext] Custom templates API returned ${customTemplateResponse.status}, skipping custom layouts`);
+        return {
+          layoutsById,
+          layoutsByTemplateID,
+          templateSettings: templateSettingsMap,
+          fileMap,
+          templateLayoutsCache,
+          layoutSchema: layouts,
+          fullDataByTemplateID,
+        };
+      }
       const customTemplateData = await customTemplateResponse.json();
 
       const customFonts = new Map<string, string[]>();

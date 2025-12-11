@@ -79,6 +79,7 @@ async function getBrowserAndPage(id: string): Promise<[Browser, Page]> {
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
     headless: true,
+    timeout: 60000, // Increase launch timeout to 60 seconds
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -90,6 +91,8 @@ async function getBrowserAndPage(id: string): Promise<[Browser, Page]> {
       "--disable-renderer-backgrounding",
       "--disable-features=TranslateUI",
       "--disable-ipc-flooding-protection",
+      "--single-process", // Run in single process mode to reduce memory usage
+      "--disable-extensions",
     ],
   });
 
@@ -98,10 +101,67 @@ async function getBrowserAndPage(id: string): Promise<[Browser, Page]> {
   await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
   page.setDefaultNavigationTimeout(300000);
   page.setDefaultTimeout(300000);
-  await page.goto(`http://localhost/pdf-maker?id=${id}`, {
+  // Puppeteer runs in the same container as Next.js, so use localhost:3000
+  await page.goto(`http://localhost:3000/pdf-maker?id=${id}`, {
     waitUntil: "networkidle0",
     timeout: 300000,
   });
+  
+  // Check what URL we actually ended up on (might be redirected)
+  const currentUrl = page.url();
+  console.log(`Navigated to pdf-maker, current URL: ${currentUrl}`);
+  
+  // If we were redirected to the configuration page, that's the issue
+  if (currentUrl.includes('/') && !currentUrl.includes('/pdf-maker')) {
+    const pageContent = await page.evaluate(() => document.body.innerText);
+    console.error(`Redirected away from pdf-maker. Current URL: ${currentUrl}`);
+    console.error(`Page content preview: ${pageContent.substring(0, 500)}`);
+    throw new ApiError(`Page was redirected to ${currentUrl}. Likely missing LLM configuration.`);
+  }
+  
+  // Wait a bit for React to hydrate and start fetching
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Wait for the presentation slides wrapper to appear
+  // The React app needs time to fetch data and render slides
+  try {
+    // First check if there's an error state
+    const errorElement = await page.$('div[role="alert"]');
+    if (errorElement) {
+      const errorText = await page.evaluate(el => el.textContent, errorElement);
+      throw new ApiError(`Page shows error state: ${errorText}`);
+    }
+    
+    // Wait for the slides wrapper element to exist
+    await page.waitForSelector('#presentation-slides-wrapper', {
+      timeout: 60000,
+      visible: true
+    });
+    
+    // Wait for slides to actually render (check for child elements, not skeletons)
+    await page.waitForFunction(
+      () => {
+        const wrapper = document.querySelector('#presentation-slides-wrapper');
+        if (!wrapper) return false;
+        // Check if there are slide elements (not just skeletons with bg-gray-400)
+        const slides = wrapper.querySelectorAll(':scope > div > div');
+        const hasSkeletons = wrapper.querySelectorAll('.bg-gray-400').length > 0;
+        return slides.length > 0 && !hasSkeletons;
+      },
+      { timeout: 60000 }
+    );
+    
+    // Additional wait to ensure React has finished rendering
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  } catch (error) {
+    // Log page content for debugging
+    const bodyText = await page.evaluate(() => document.body.innerText);
+    const htmlContent = await page.content();
+    console.error('Failed to find slides. Page content:', bodyText.substring(0, 1000));
+    console.error('Page HTML snippet:', htmlContent.substring(0, 2000));
+    throw new ApiError(`Presentation slides not found: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+  
   return [browser, page];
 }
 

@@ -1,0 +1,76 @@
+FROM node:20-bookworm
+
+# Install system dependencies required for Puppeteer
+RUN apt-get update && apt-get install -y \
+    chromium \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libc6 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libgcc1 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    ca-certificates \
+    fonts-liberation \
+    libappindicator1 \
+    libnss3 \
+    lsb-release \
+    xdg-utils \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
+ENV APP_DATA_DIRECTORY=/app_data
+ENV TEMP_DIRECTORY=/tmp/presenton
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create working directory
+WORKDIR /app
+
+# Copy package files
+COPY servers/nextjs/package.json servers/nextjs/package-lock.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy Next.js source
+COPY servers/nextjs/ ./
+
+# Build Next.js app
+RUN npm run build
+
+# Create app_data directory
+RUN mkdir -p /app_data /tmp/presenton
+
+# Expose port
+EXPOSE 3000
+
+# Start Next.js production server
+CMD ["npm", "start", "--", "-H", "0.0.0.0", "-p", "3000"]
+

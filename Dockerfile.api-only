@@ -17,30 +17,32 @@ ENV TEMP_DIRECTORY=/tmp/presenton
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PYTHONUNBUFFERED=1
 
-# Install uv
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
-COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /bin/
+# Install Python dependencies for FastAPI (matching pyproject.toml)
+RUN pip install --no-cache-dir \
+    aiohttp>=3.12.15 \
+    aiomysql>=0.2.0 \
+    aiosqlite>=0.21.0 \
+    asyncpg>=0.30.0 \
+    anthropic>=0.60.0 \
+    chromadb>=1.0.15 \
+    dirtyjson>=1.0.8 \
+    fastapi[standard]>=0.116.1 \
+    fastmcp>=2.11.0 \
+    google-genai>=1.28.0 \
+    nltk>=3.9.1 \
+    openai>=1.98.0 \
+    pathvalidate>=3.3.1 \
+    pdfplumber>=0.11.7 \
+    python-pptx>=1.0.2 \
+    redis>=6.2.0 \
+    sqlmodel>=0.0.24 \
+    uvicorn[standard]
 
-# Compile bytecode
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
-ENV UV_COMPILE_BYTECODE=1
-
-# uv Cache
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
-ENV UV_LINK_MODE=copy
-
-# Copy pyproject.toml and uv.lock first for dependency installation
-COPY servers/fastapi/pyproject.toml servers/fastapi/uv.lock ./servers/fastapi/
-
-# Install dependencies
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
-RUN --mount=type=cache,target=/root/.cache/uv \
-    cd servers/fastapi && \
-    uv sync --frozen --no-install-project
+# Install docling with PyTorch CPU support
+RUN pip install --no-cache-dir docling>=2.43.0 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Download NLTK data (required for text processing)
-# Note: Must use the Python from the venv (created in servers/fastapi/.venv)
-RUN /app/servers/fastapi/.venv/bin/python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True)"
+RUN python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True)"
 
 # Copy only FastAPI server files
 COPY servers/fastapi/ ./servers/fastapi/
@@ -49,20 +51,12 @@ COPY LICENSE NOTICE ./
 # Create app_data directory
 RUN mkdir -p /app_data
 
-# Note: presenton is not an installable package (no [build-system] in pyproject.toml),
-# so we don't need to run uv sync again. Dependencies are already installed.
-
-ENV PYTHONPATH=/app/servers/fastapi
-# Update PATH to use venv Python
-ENV PATH="/app/servers/fastapi/.venv/bin:$PATH"
-
 # Expose FastAPI port
 EXPOSE 8000
 
 # Set working directory to FastAPI server
 WORKDIR /app/servers/fastapi
 
-# Start FastAPI server directly using uvicorn (same pattern as fastapi_agent)
-# Bind to 0.0.0.0 to allow connections from other Docker containers
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start FastAPI server directly (no Next.js, no Nginx, no Ollama)
+CMD ["python", "server.py", "--port", "8000", "--reload", "false"]
 

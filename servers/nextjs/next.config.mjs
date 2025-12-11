@@ -4,12 +4,20 @@ const nextConfig = {
   distDir: ".next-build",
   
 
-  // Rewrites for development - proxy font requests to FastAPI backend
+  // Rewrites for development - proxy font requests and API calls to FastAPI backend
   async rewrites() {
+    // Get the backend URL from environment variable, default to Docker service name
+    const backendUrl = process.env.BACKEND_URL || 'http://presenton-api:8000';
+    
     return [
       {
         source: '/app_data/fonts/:path*',
         destination: 'http://localhost:8000/app_data/fonts/:path*',
+      },
+      // Proxy all /api/v1/ppt/* requests to Presenton FastAPI backend
+      {
+        source: '/api/v1/ppt/:path*',
+        destination: `${backendUrl}/api/v1/ppt/:path*`,
       },
     ];
   },
