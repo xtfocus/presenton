@@ -29,7 +29,7 @@ async def process_slide_and_fetch_assets(
 
     image_paths = get_dict_paths_with_key(slide.content, "__image_prompt__")
     icon_paths = get_dict_paths_with_key(slide.content, "__icon_query__")
-    
+
     logger.info(f"{log_prefix} {slide_log}: Found {len(image_paths)} image prompts, {len(icon_paths)} icon queries")
 
     for idx, image_path in enumerate(image_paths):
@@ -89,7 +89,7 @@ async def process_slide_and_fetch_assets(
 
     total_duration = (datetime.now() - start_time).total_seconds()
     logger.info(f"{log_prefix} {slide_log}: Asset processing completed in {total_duration:.2f}s. Returning {len(return_assets)} assets")
-    
+
     return return_assets
 
 

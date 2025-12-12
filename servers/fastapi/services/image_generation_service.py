@@ -161,7 +161,7 @@ class ImageGenerationService:
 
             if not image_path:
                 raise Exception("No image data received from Gemini API")
-            
+
             total_duration = (datetime.now() - gemini_start).total_seconds()
             logger.info(f"[GEMINI] Image generation completed in {total_duration:.2f}s")
             return image_path
