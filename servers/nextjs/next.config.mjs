@@ -12,7 +12,11 @@ const nextConfig = {
     return [
       {
         source: '/app_data/fonts/:path*',
-        destination: 'http://localhost:8000/app_data/fonts/:path*',
+        destination: `${backendUrl}/app_data/fonts/:path*`,
+      },
+      {
+        source: '/app_data/images/:path*',
+        destination: `${backendUrl}/app_data/images/:path*`,
       },
       // Proxy all /api/v1/ppt/* requests to Presenton FastAPI backend
       {

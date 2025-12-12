@@ -27,10 +27,13 @@ async def export_presentation(
     if export_as == "pptx":
 
         # Get the converted PPTX model from the Next.js service
-        async with aiohttp.ClientSession() as session:
+        # Set a long timeout for PPTX export (5 minutes) since Puppeteer rendering can take time
+        timeout = aiohttp.ClientTimeout(total=300)  # 5 minutes
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(
                 f"{nextjs_url}/api/presentation_to_pptx_model?id={presentation_id}"
             ) as response:
+                response.raise_for_status()
                 if response.status != 200:
                     error_text = await response.text()
                     print(f"Failed to get PPTX model: {error_text}")
@@ -58,7 +61,9 @@ async def export_presentation(
             path=pptx_path,
         )
     else:
-        async with aiohttp.ClientSession() as session:
+        # Set a long timeout for PDF export (5 minutes) since Puppeteer rendering can take time
+        timeout = aiohttp.ClientTimeout(total=300)  # 5 minutes
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
                 f"{nextjs_url}/api/export-as-pdf",
                 json={
@@ -66,6 +71,7 @@ async def export_presentation(
                     "title": sanitize_filename(title or str(uuid.uuid4())),
                 },
             ) as response:
+                response.raise_for_status()
                 response_json = await response.json()
 
         return PresentationAndPath(
