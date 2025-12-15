@@ -59,14 +59,19 @@ export async function GET(request: Request) {
       console.error(`[TEMPLATE API] Page error: ${error.message}`);
     });
     
+    // Use "domcontentloaded" instead of "networkidle0" for faster initial load
+    // networkidle0 can timeout when external resources take too long
     console.log(`[TEMPLATE API] Navigating to schema page...`);
     await page.goto(schemaPageUrl, {
-      waitUntil: "networkidle0",
-      timeout: 300000,
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
     });
     const navTime = Date.now() - startTime;
     console.log(`[TEMPLATE API] Navigation completed after ${navTime}ms`);
     console.log(`[TEMPLATE API] Current URL: ${page.url()}`);
+    
+    // Wait for React to hydrate
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Check page content
     const pageContent = await page.evaluate(() => document.body.innerText);
@@ -74,12 +79,12 @@ export async function GET(request: Request) {
 
     console.log(`[TEMPLATE API] Waiting for [data-layouts] selector...`);
     try {
-      await page.waitForSelector("[data-layouts]", { timeout: 300000 });
+      await page.waitForSelector("[data-layouts]", { timeout: 60000 });
       console.log(`[TEMPLATE API] Found [data-layouts] selector`);
     } catch (e) {
       const pageContent = await page.evaluate(() => document.body.innerText);
       const pageHTML = await page.content();
-      console.error(`[TEMPLATE API] Failed to find [data-layouts] selector after 300s`);
+      console.error(`[TEMPLATE API] Failed to find [data-layouts] selector after 60s`);
       console.error(`[TEMPLATE API] Page content: ${pageContent.substring(0, 1000)}`);
       console.error(`[TEMPLATE API] Page HTML snippet: ${pageHTML.substring(0, 2000)}`);
       throw e;
@@ -87,11 +92,11 @@ export async function GET(request: Request) {
     
     console.log(`[TEMPLATE API] Waiting for [data-settings] selector...`);
     try {
-      await page.waitForSelector("[data-settings]", { timeout: 300000 });
+      await page.waitForSelector("[data-settings]", { timeout: 60000 });
       console.log(`[TEMPLATE API] Found [data-settings] selector`);
     } catch (e) {
       const pageContent = await page.evaluate(() => document.body.innerText);
-      console.error(`[TEMPLATE API] Failed to find [data-settings] selector after 300s`);
+      console.error(`[TEMPLATE API] Failed to find [data-settings] selector after 60s`);
       console.error(`[TEMPLATE API] Page content: ${pageContent.substring(0, 1000)}`);
       throw e;
     }

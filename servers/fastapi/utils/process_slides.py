@@ -82,10 +82,16 @@ async def process_slide_and_fetch_assets(
 
     for idx, icon_path in enumerate(icon_paths):
         icon_dict = get_dict_at_path(slide.content, icon_path)
-        icon_result = results.pop()[0]
-        icon_dict["__icon_url__"] = icon_result
+        icon_search_result = results.pop()
+        if icon_search_result and len(icon_search_result) > 0:
+            icon_result = icon_search_result[0]
+            icon_dict["__icon_url__"] = icon_result
+            logger.debug(f"{log_prefix} {slide_log}: Icon {idx+1} found: {icon_result}")
+        else:
+            # No icon found, use placeholder
+            icon_dict["__icon_url__"] = "/static/icons/placeholder.svg"
+            logger.warning(f"{log_prefix} {slide_log}: Icon {idx+1} not found, using placeholder")
         set_dict_at_path(slide.content, icon_path, icon_dict)
-        logger.debug(f"{log_prefix} {slide_log}: Icon {idx+1} found: {icon_result}")
 
     total_duration = (datetime.now() - start_time).total_seconds()
     logger.info(f"{log_prefix} {slide_log}: Asset processing completed in {total_duration:.2f}s. Returning {len(return_assets)} assets")
@@ -195,7 +201,12 @@ async def process_old_and_new_slides_and_fetch_assets(
 
     for i, new_icon in enumerate(new_icons):
         if new_icons_fetch_status[i]:
-            new_icon_dicts[i]["__icon_url__"] = new_icons[i][0]
+            icon_search_result = new_icons[i]
+            if icon_search_result and len(icon_search_result) > 0:
+                new_icon_dicts[i]["__icon_url__"] = icon_search_result[0]
+            else:
+                # No icon found, use placeholder
+                new_icon_dicts[i]["__icon_url__"] = "/static/icons/placeholder.svg"
 
     for i, new_image_dict in enumerate(new_image_dicts):
         set_dict_at_path(new_slide_content, new_image_dict_paths[i], new_image_dict)

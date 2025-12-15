@@ -18,6 +18,11 @@ const nextConfig = {
         source: '/app_data/images/:path*',
         destination: `${backendUrl}/app_data/images/:path*`,
       },
+      // Proxy static files (icons, placeholder images) to FastAPI backend
+      {
+        source: '/static/:path*',
+        destination: `${backendUrl}/static/:path*`,
+      },
       // Proxy all /api/v1/ppt/* requests to Presenton FastAPI backend
       {
         source: '/api/v1/ppt/:path*',

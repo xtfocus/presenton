@@ -101,30 +101,35 @@ async function getBrowserAndPage(id: string): Promise<[Browser, Page]> {
   await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
   page.setDefaultNavigationTimeout(300000);
   page.setDefaultTimeout(300000);
-  // Puppeteer runs in the same container as Next.js, so use localhost:3000
+  
+  // Use "domcontentloaded" instead of "networkidle0" for faster initial load
+  // networkidle0 can timeout when external resources (CDN, fonts, images) take too long
+  // We'll explicitly wait for content to be ready after navigation
+  console.log(`[PPTX Export] Navigating to pdf-maker page for presentation ${id}...`);
   await page.goto(`http://localhost:3000/pdf-maker?id=${id}`, {
-    waitUntil: "networkidle0",
-    timeout: 300000,
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
   });
   
   // Check what URL we actually ended up on (might be redirected)
   const currentUrl = page.url();
-  console.log(`Navigated to pdf-maker, current URL: ${currentUrl}`);
+  console.log(`[PPTX Export] Navigated to pdf-maker, current URL: ${currentUrl}`);
   
   // If we were redirected to the configuration page, that's the issue
   if (currentUrl.includes('/') && !currentUrl.includes('/pdf-maker')) {
     const pageContent = await page.evaluate(() => document.body.innerText);
-    console.error(`Redirected away from pdf-maker. Current URL: ${currentUrl}`);
-    console.error(`Page content preview: ${pageContent.substring(0, 500)}`);
+    console.error(`[PPTX Export] Redirected away from pdf-maker. Current URL: ${currentUrl}`);
+    console.error(`[PPTX Export] Page content preview: ${pageContent.substring(0, 500)}`);
     throw new ApiError(`Page was redirected to ${currentUrl}. Likely missing LLM configuration.`);
   }
-  
-  // Wait a bit for React to hydrate and start fetching
-  await new Promise(resolve => setTimeout(resolve, 2000));
   
   // Wait for the presentation slides wrapper to appear
   // The React app needs time to fetch data and render slides
   try {
+    // Wait a bit for React to hydrate and start fetching data
+    console.log(`[PPTX Export] Waiting for React hydration...`);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
     // First check if there's an error state
     const errorElement = await page.$('div[role="alert"]');
     if (errorElement) {
@@ -133,12 +138,14 @@ async function getBrowserAndPage(id: string): Promise<[Browser, Page]> {
     }
     
     // Wait for the slides wrapper element to exist
+    console.log(`[PPTX Export] Waiting for presentation-slides-wrapper...`);
     await page.waitForSelector('#presentation-slides-wrapper', {
-      timeout: 60000,
+      timeout: 120000, // 2 minutes for data fetching
       visible: true
     });
     
     // Wait for slides to actually render (check for child elements, not skeletons)
+    console.log(`[PPTX Export] Waiting for slides to render...`);
     await page.waitForFunction(
       () => {
         const wrapper = document.querySelector('#presentation-slides-wrapper');
@@ -148,17 +155,32 @@ async function getBrowserAndPage(id: string): Promise<[Browser, Page]> {
         const hasSkeletons = wrapper.querySelectorAll('.bg-gray-400').length > 0;
         return slides.length > 0 && !hasSkeletons;
       },
-      { timeout: 60000 }
+      { timeout: 120000 } // 2 minutes for slide rendering
     );
     
-    // Additional wait to ensure React has finished rendering
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for all images to load
+    console.log(`[PPTX Export] Waiting for images to load...`);
+    await page.waitForFunction(
+      () => {
+        const images = document.querySelectorAll('img');
+        return Array.from(images).every(img => img.complete && img.naturalHeight !== 0);
+      },
+      { timeout: 60000 } // 1 minute for images
+    ).catch(() => {
+      console.warn(`[PPTX Export] Some images may not have loaded completely, continuing anyway...`);
+    });
+    
+    // Additional wait to ensure React has finished rendering and any animations complete
+    console.log(`[PPTX Export] Final stabilization wait...`);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    console.log(`[PPTX Export] Page is ready for export`);
   } catch (error) {
     // Log page content for debugging
     const bodyText = await page.evaluate(() => document.body.innerText);
     const htmlContent = await page.content();
-    console.error('Failed to find slides. Page content:', bodyText.substring(0, 1000));
-    console.error('Page HTML snippet:', htmlContent.substring(0, 2000));
+    console.error('[PPTX Export] Failed to find slides. Page content:', bodyText.substring(0, 1000));
+    console.error('[PPTX Export] Page HTML snippet:', htmlContent.substring(0, 2000));
     throw new ApiError(`Presentation slides not found: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
   
@@ -171,14 +193,11 @@ async function closeBrowserAndPage(browser: Browser | null, page: Page | null) {
 }
 
 function getScreenshotsDir() {
-  const tempDir = process.env.TEMP_DIRECTORY;
-  if (!tempDir) {
-    console.warn(
-      "TEMP_DIRECTORY environment variable not set, skipping screenshot"
-    );
-    throw new ApiError("TEMP_DIRECTORY environment variable not set");
-  }
-  const screenshotsDir = path.join(tempDir, "screenshots");
+  // Use APP_DATA_DIRECTORY which is a shared volume between containers
+  // This ensures screenshots are accessible from both presenton-nextjs and presenton-api
+  const appDataDir = process.env.APP_DATA_DIRECTORY || "/app_data";
+  const screenshotsDir = path.join(appDataDir, "temp", "screenshots");
+  console.log(`[PPTX Export] Using screenshots directory: ${screenshotsDir}`);
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir, { recursive: true });
   }

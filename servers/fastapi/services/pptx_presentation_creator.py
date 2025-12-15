@@ -66,6 +66,49 @@ class PptxPresentationCreator:
         parent.append(element)
         return element
 
+    def _normalize_image_path(self, each_shape: PptxPictureBoxModel) -> bool:
+        """
+        Normalize image path and determine if it needs to be downloaded.
+        Returns True if the image should be added to download queue, False otherwise.
+        """
+        image_path = each_shape.picture.path
+        
+        # Skip empty paths
+        if not image_path or not image_path.strip():
+            return False
+            
+        # Skip placeholder images
+        if "/static/images/placeholder.jpg" in image_path or "/static/icons/placeholder" in image_path:
+            return False
+            
+        # Skip data URLs
+        if image_path.startswith("data:"):
+            print(f"[PPTX] Skipping data URL image (not supported)")
+            return False
+        
+        # Handle network URLs
+        if image_path.startswith("http://") or image_path.startswith("https://"):
+            # Convert app_data URLs to local paths
+            if "app_data/" in image_path:
+                relative_path = image_path.split("app_data/")[1]
+                each_shape.picture.path = os.path.join("/app_data", relative_path)
+                each_shape.picture.is_network = False
+                print(f"[PPTX] Converted app_data URL to local path: {each_shape.picture.path}")
+                return False
+                
+            # Convert localhost:3000 URLs to presenton-nextjs internal URLs
+            if "localhost:3000" in image_path:
+                presenton_nextjs_url = os.getenv("PRESENTON_NEXTJS_URL", "http://presenton-nextjs:3000")
+                new_path = image_path.replace("http://localhost:3000", presenton_nextjs_url)
+                each_shape.picture.path = new_path
+                print(f"[PPTX] Converted localhost URL to internal: {new_path}")
+                return True
+                
+            # Other network URLs need to be downloaded
+            return True
+            
+        return False
+
     async def fetch_network_assets(self):
         image_urls = []
         models_with_network_asset: List[PptxPictureBoxModel] = []
@@ -73,40 +116,19 @@ class PptxPresentationCreator:
         if self._ppt_model.shapes:
             for each_shape in self._ppt_model.shapes:
                 if isinstance(each_shape, PptxPictureBoxModel):
-                    image_path = each_shape.picture.path
-                    # Skip placeholder images - they don't need to be downloaded
-                    if "/static/images/placeholder.jpg" in image_path or "/static/icons/placeholder" in image_path:
-                        continue
-                    if image_path.startswith("http"):
-                        if "app_data/" in image_path:
-                            relative_path = image_path.split("app_data/")[1]
-                            each_shape.picture.path = os.path.join(
-                                "/app_data", relative_path
-                            )
-                            each_shape.picture.is_network = False
-                            continue
-                        image_urls.append(image_path)
+                    if self._normalize_image_path(each_shape):
+                        image_urls.append(each_shape.picture.path)
                         models_with_network_asset.append(each_shape)
 
         for each_slide in self._slide_models:
             for each_shape in each_slide.shapes:
                 if isinstance(each_shape, PptxPictureBoxModel):
-                    image_path = each_shape.picture.path
-                    # Skip placeholder images - they don't need to be downloaded
-                    if "/static/images/placeholder.jpg" in image_path or "/static/icons/placeholder" in image_path:
-                        continue
-                    if image_path.startswith("http"):
-                        if "app_data" in image_path:
-                            relative_path = image_path.split("app_data/")[1]
-                            each_shape.picture.path = os.path.join(
-                                "/app_data", relative_path
-                            )
-                            each_shape.picture.is_network = False
-                            continue
-                        image_urls.append(image_path)
+                    if self._normalize_image_path(each_shape):
+                        image_urls.append(each_shape.picture.path)
                         models_with_network_asset.append(each_shape)
 
         if image_urls:
+            print(f"[PPTX] Downloading {len(image_urls)} network images...")
             image_paths = await download_files(image_urls, self._temp_dir)
 
             for each_shape, each_image_path in zip(
@@ -115,6 +137,9 @@ class PptxPresentationCreator:
                 if each_image_path:
                     each_shape.picture.path = each_image_path
                     each_shape.picture.is_network = False
+                    print(f"[PPTX] Downloaded image to: {each_image_path}")
+                else:
+                    print(f"[PPTX] Failed to download image: {each_shape.picture.path}")
 
     async def create_ppt(self):
         await self.fetch_network_assets()
@@ -182,10 +207,32 @@ class PptxPresentationCreator:
 
     def add_picture(self, slide: Slide, picture_model: PptxPictureBoxModel):
         image_path = picture_model.picture.path
+        
+        # Skip empty paths
+        if not image_path or not image_path.strip():
+            print(f"[PPTX] Skipping empty image path")
+            return
+            
         # Skip placeholder images - they don't exist as local files
         if "/static/images/placeholder.jpg" in image_path or "/static/icons/placeholder" in image_path:
-            print(f"Skipping placeholder image: {image_path}")
+            print(f"[PPTX] Skipping placeholder image: {image_path}")
             return
+            
+        # Skip data URLs - they should have been converted to files earlier
+        if image_path.startswith("data:"):
+            print(f"[PPTX] Skipping data URL image (not converted): {image_path[:50]}...")
+            return
+            
+        # Skip network URLs that weren't downloaded
+        if image_path.startswith("http://") or image_path.startswith("https://"):
+            print(f"[PPTX] Skipping network image (not downloaded): {image_path}")
+            return
+            
+        # Check if file exists before trying to open
+        if not os.path.exists(image_path):
+            print(f"[PPTX] Image file not found: {image_path}")
+            return
+            
         if (
             picture_model.clip
             or picture_model.border_radius
@@ -196,8 +243,8 @@ class PptxPresentationCreator:
         ):
             try:
                 image = Image.open(image_path)
-            except Exception:
-                print(f"Could not open image: {image_path}")
+            except Exception as e:
+                print(f"[PPTX] Could not open image: {image_path}, error: {e}")
                 return
 
             image = image.convert("RGBA")

@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     
     // Wait for the slides wrapper element to exist
     await page.waitForSelector('#presentation-slides-wrapper', {
-      timeout: 60000,
+      timeout: 120000, // 2 minutes for data fetching
       visible: true
     });
     console.log("[EXPORT-PDF] Slides wrapper found");
@@ -112,12 +112,24 @@ export async function POST(req: NextRequest) {
         const hasSkeletons = wrapper.querySelectorAll('.bg-gray-400').length > 0;
         return slides.length > 0 && !hasSkeletons;
       },
-      { timeout: 60000 }
+      { timeout: 120000 } // 2 minutes for slide rendering
     );
     console.log("[EXPORT-PDF] Slides rendered");
     
-    // Additional wait to ensure React has finished rendering
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for all images to load
+    console.log("[EXPORT-PDF] Waiting for images to load...");
+    await page.waitForFunction(
+      () => {
+        const images = document.querySelectorAll('img');
+        return Array.from(images).every(img => img.complete && img.naturalHeight !== 0);
+      },
+      { timeout: 60000 }
+    ).catch(() => {
+      console.warn("[EXPORT-PDF] Some images may not have loaded completely, continuing anyway...");
+    });
+    
+    // Additional wait to ensure React has finished rendering and any animations complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
   } catch (error) {
     // Log page content for debugging
     const bodyText = await page.evaluate(() => document.body.innerText);
