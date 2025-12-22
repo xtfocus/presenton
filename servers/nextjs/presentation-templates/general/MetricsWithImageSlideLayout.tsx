@@ -98,12 +98,16 @@ const MetricsWithImageSlideLayout: React.FC<MetricsWithImageSlideLayoutProps> = 
                     <div className="flex-1 flex flex-col justify-center pl-8 space-y-6">
                         {/* Title */}
                         <h1 style={{ color: "var(--text-heading-color,#111827)" }} className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                            {slideData?.title || 'Competitive Advantage'}
+                            {slideData?.title !== undefined && slideData?.title !== null 
+                                ? slideData.title 
+                                : 'Competitive Advantage'}
                         </h1>
 
                         {/* Description */}
                         <p style={{ color: "var(--text-body-color,#4b5563)" }} className="text-base sm:text-lg text-gray-700 leading-relaxed">
-                            {slideData?.description || 'Ginyard International Co. stands out by offering custom digital solutions tailored to client needs, alongside long-term support to ensure lasting relationships and continuous adaptation.'}
+                            {slideData?.description !== undefined && slideData?.description !== null 
+                                ? slideData.description 
+                                : 'Ginyard International Co. stands out by offering custom digital solutions tailored to client needs, alongside long-term support to ensure lasting relationships and continuous adaptation.'}
                         </p>
 
                         {/* Metrics Grid */}

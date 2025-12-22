@@ -148,11 +148,14 @@ const dynamicSlideLayout: React.FC<SlideLayoutProps> = ({ data: slideData }) => 
           {/* Right: Text */}
           <div className="h-full px-12 flex flex-col justify-center">
             <h1 className="text-[64px] leading-[1.05] tracking-tight font-semibold" style={{ color: 'var(--text-heading-color, #111827)' }}>
-              {slideData?.title || 'Insights At A Glance'}
+              {slideData?.title !== undefined && slideData?.title !== null 
+                ? slideData.title 
+                : 'Insights At A Glance'}
             </h1>
             <p className="mt-6 text-[16px] leading-[28px]" style={{ color: 'var(--text-body-color, #6B7280)' }}>
-              {slideData?.paragraph ||
-                'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'}
+              {slideData?.paragraph !== undefined && slideData?.paragraph !== null
+                ? slideData.paragraph
+                : 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'}
             </p>
           </div>
         </div>

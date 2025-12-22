@@ -88,7 +88,9 @@ const TableInfoSlideLayout: React.FC<TableInfoSlideLayoutProps> = ({ data: slide
                     {/* Title Section */}
                     <div className="text-center space-y-4">
                         <h1 style={{ color: "var(--text-heading-color,#111827)" }} className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900">
-                            {slideData?.title || 'Market Comparison'}
+                            {slideData?.title !== undefined && slideData?.title !== null 
+                                ? slideData.title 
+                                : 'Market Comparison'}
                         </h1>
                         {/* Purple accent line */}
                         <div style={{ background: "var(--primary-accent-color,#9333ea)" }} className="w-20 h-1 bg-purple-600 mx-auto"></div>
@@ -143,7 +145,9 @@ const TableInfoSlideLayout: React.FC<TableInfoSlideLayoutProps> = ({ data: slide
                     <div className="text-center space-y-4">
                         <div className="max-w-4xl mx-auto">
                             <p style={{ color: "var(--text-body-color,#4b5563)" }} className="text-sm sm:text-base text-gray-700 leading-relaxed">
-                                {slideData?.description || 'This comparison shows our competitive position in the market. While we currently have a smaller market share, our growth rate significantly exceeds competitors, indicating strong potential for future expansion.'}
+                                {slideData?.description !== undefined && slideData?.description !== null 
+                                    ? slideData.description 
+                                    : 'This comparison shows our competitive position in the market. While we currently have a smaller market share, our growth rate significantly exceeds competitors, indicating strong potential for future expansion.'}
                             </p>
                         </div>
                     </div>

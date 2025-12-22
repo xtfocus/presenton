@@ -93,7 +93,9 @@ interface LayoutProps {
 }
 
 const dynamicSlideLayout: React.FC<LayoutProps> = ({ data: slideData }) => {
-    const title = slideData?.title || "Introduction Our Pitchdeck"
+    const title = slideData?.title !== undefined && slideData?.title !== null 
+        ? slideData.title 
+        : "Introduction Our Pitchdeck"
     const brIndex = typeof slideData?.titleBreakAfter === "number" ? slideData?.titleBreakAfter as number : 12
     const titleFirst = title.slice(0, brIndex)
     const titleSecond = title.slice(brIndex)
@@ -126,7 +128,9 @@ const dynamicSlideLayout: React.FC<LayoutProps> = ({ data: slideData }) => {
                             </h1>
 
                             <p className="mt-8 text-[16px] leading-[28px] " style={{ color: 'var(--text-body-color, #6B7280)' }}>
-                                {slideData?.paragraph || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris"}
+                                {slideData?.paragraph !== undefined && slideData?.paragraph !== null 
+                                    ? slideData.paragraph 
+                                    : "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris"}
                             </p>
 
                             {slideData?.introCard?.enabled ? (

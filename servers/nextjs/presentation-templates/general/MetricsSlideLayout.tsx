@@ -115,7 +115,9 @@ const MetricsSlideLayout: React.FC<MetricsSlideLayoutProps> = ({ data: slideData
                         {/* Title */}
                         <div className="text-center">
                             <h1 style={{ color: "var(--text-heading-color,#111827)" }} className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900">
-                                {slideData?.title || 'Company Traction'}
+                                {slideData?.title !== undefined && slideData?.title !== null 
+                                    ? slideData.title 
+                                    : 'Company Traction'}
                             </h1>
                         </div>
 

@@ -119,7 +119,9 @@ const TeamSlideLayout: React.FC<TeamSlideLayoutProps> = ({ data: slideData }) =>
                     <div className="flex-1 flex flex-col justify-center pr-8 space-y-6">
                         {/* Title */}
                         <h1 style={{ color: "var(--text-heading-color,#111827)" }} className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                            {slideData?.title || 'Our Team Members'}
+                            {slideData?.title !== undefined && slideData?.title !== null 
+                                ? slideData.title 
+                                : 'Our Team Members'}
                         </h1>
 
                         {/* Purple accent line */}
@@ -127,7 +129,9 @@ const TeamSlideLayout: React.FC<TeamSlideLayoutProps> = ({ data: slideData }) =>
 
                         {/* Company Description */}
                         <p style={{ color: "var(--text-body-color,#4b5563)" }} className="text-base sm:text-lg text-gray-700 leading-relaxed">
-                            {slideData?.companyDescription || 'Ginyard International Co. is a leading provider of innovative digital solutions tailored for businesses. Our mission is to empower organizations to achieve their goals through cutting-edge technology and strategic partnerships.'}
+                            {slideData?.companyDescription !== undefined && slideData?.companyDescription !== null 
+                                ? slideData.companyDescription 
+                                : 'Ginyard International Co. is a leading provider of innovative digital solutions tailored for businesses. Our mission is to empower organizations to achieve their goals through cutting-edge technology and strategic partnerships.'}
                         </p>
                     </div>
 

@@ -120,7 +120,7 @@ const dynamicSlideLayout: React.FC<SlideLayoutProps> = ({ data: slideData }) => 
 
         <div className="px-10 pt-5 pb-6">
           <h1 className="text-[64px] leading-[1.05] text-center font-semibold" style={{ fontFamily: "Playfair Display", color: 'var(--text-heading-color, #111827)' }}>
-            {(slideData?.title || "").split("\n").map((line, idx) => (
+            {(slideData?.title !== undefined && slideData?.title !== null ? slideData.title : "").split("\n").map((line, idx) => (
               <span key={idx}>
                 {line}
                 {idx === 0 ? <br /> : null}

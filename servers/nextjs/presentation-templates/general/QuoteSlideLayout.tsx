@@ -75,7 +75,9 @@ const QuoteSlideLayout: React.FC<QuoteSlideLayoutProps> = ({ data: slideData }) 
                         {/* Heading */}
                         <div className="space-y-4">
                             <h1 style={{ color: "var(--text-heading-color,#111827)" }} className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
-                                {slideData?.heading || 'Words of Wisdom'}
+                                {slideData?.heading !== undefined && slideData?.heading !== null 
+                                    ? slideData.heading 
+                                    : 'Words of Wisdom'}
                             </h1>
                             {/* Purple accent line */}
                             <div style={{ background: "var(--primary-accent-color,#9333ea)" }} className="w-20 h-1 bg-purple-400 mx-auto"></div>
@@ -96,14 +98,18 @@ const QuoteSlideLayout: React.FC<QuoteSlideLayoutProps> = ({ data: slideData }) 
 
                             {/* Quote Text */}
                             <blockquote style={{ color: "var(--text-body-color,#ffffff)" }} className="text-xl sm:text-2xl lg:text-3xl font-medium text-white leading-relaxed italic">
-                                "{slideData?.quote || 'Success is not final, failure is not fatal: it is the courage to continue that counts. The future belongs to those who believe in the beauty of their dreams.'}"
+                                "{slideData?.quote !== undefined && slideData?.quote !== null 
+                                    ? slideData.quote 
+                                    : 'Success is not final, failure is not fatal: it is the courage to continue that counts. The future belongs to those who believe in the beauty of their dreams.'}"
                             </blockquote>
 
                             {/* Author */}
                             <div className="flex justify-center items-center space-x-4">
                                 <div style={{ background: "var(--primary-accent-color,#9333ea)" }} className="w-16 h-px bg-purple-300"></div>
                                 <cite className="text-base sm:text-lg text-purple-200 font-semibold not-italic">
-                                    {slideData?.author || 'Winston Churchill'}
+                                    {slideData?.author !== undefined && slideData?.author !== null 
+                                        ? slideData.author 
+                                        : 'Winston Churchill'}
                                 </cite>
                                 <div style={{ background: "var(--primary-accent-color,#9333ea)" }} className="w-16 h-px bg-purple-300"></div>
                             </div>

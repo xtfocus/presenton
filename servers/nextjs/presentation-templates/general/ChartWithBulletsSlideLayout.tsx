@@ -251,12 +251,16 @@ const ChartWithBulletsSlideLayout: React.FC<ChartWithBulletsSlideLayoutProps> = 
                     <div className="flex-1 flex flex-col pr-8">
                         {/* Title */}
                         <h1 style={{ color: "var(--text-heading-color,#111827)" }} className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
-                            {slideData?.title || 'Market Size'}
+                            {slideData?.title !== undefined && slideData?.title !== null 
+                                ? slideData.title 
+                                : 'Market Size'}
                         </h1>
 
                         {/* Description */}
                         <p style={{ color: "var(--text-body-color,#4b5563)" }} className="text-base text-gray-700 leading-relaxed mb-8">
-                            {slideData?.description || 'Businesses face challenges with outdated technology and rising costs, limiting efficiency and growth in competitive markets.'}
+                            {slideData?.description !== undefined && slideData?.description !== null 
+                                ? slideData.description 
+                                : 'Businesses face challenges with outdated technology and rising costs, limiting efficiency and growth in competitive markets.'}
                         </p>
 
                         {/* Chart Container */}

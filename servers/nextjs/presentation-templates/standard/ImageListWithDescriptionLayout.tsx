@@ -105,7 +105,9 @@ const dynamicSlideLayout: React.FC<SlideLayoutProps> = ({ data: slideData }) => 
 
 
         <h1 className="mt-4 text-center text-[64px] leading-[1.05]  font-semibold" style={{ color: 'var(--text-heading-color, #111827)' }}>
-          {slideData?.title || "Our Professional Team"}
+          {slideData?.title !== undefined && slideData?.title !== null 
+            ? slideData.title 
+            : "Our Professional Team"}
         </h1>
 
         <div className="px-10 mt-8">

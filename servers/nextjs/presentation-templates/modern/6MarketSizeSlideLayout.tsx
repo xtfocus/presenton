@@ -108,7 +108,9 @@ const MarketSizeSlideLayout: React.FC<MarketSizeSlideProps> = ({
                 className="text-6xl font-bold text-blue-600 mb-8 leading-tight text-left"
                 style={{ marginTop: "112px" }} // 112px matches top-36 (9rem) of stats
               >
-                {slideData?.title || "Market Size"}
+                {slideData?.title !== undefined && slideData?.title !== null 
+                  ? slideData.title 
+                  : "Market Size"}
               </h1>
               <div className="w-full bg-[#CBE3CC] rounded-md mb-8 flex items-center justify-center">
                 {slideData?.mapImage?.__image_url__ && (

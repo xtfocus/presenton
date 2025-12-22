@@ -122,7 +122,9 @@ const BulletIconsOnlySlideLayout: React.FC<BulletIconsOnlySlideLayoutProps> = ({
                     <div className="flex-1 flex flex-col pr-8">
                         {/* Title */}
                         <h1 style={{ color: "var(--text-heading-color,#111827)" }} className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 mb-8">
-                            {slideData?.title || 'Solutions'}
+                            {slideData?.title !== undefined && slideData?.title !== null 
+                                ? slideData.title 
+                                : 'Solutions'}
                         </h1>
 
                         {/* Bullet Points Grid */}

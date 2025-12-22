@@ -128,11 +128,15 @@ const dynamicSlideLayout: React.FC<SlideLayoutProps> = ({ data: slideData }) => 
 
 
           <h1 className="mt-4 text-[64px] leading-[1.06] tracking-tight  font-semibold" style={{ color: 'var(--text-heading-color, #111827)' }}>
-            {slideData?.title || "Scaling New Heights Together"}
+            {slideData?.title !== undefined && slideData?.title !== null 
+              ? slideData.title 
+              : "Scaling New Heights Together"}
           </h1>
 
           <p className="mt-3 text-[16px] " style={{ color: 'var(--text-body-color, #6B7280)' }}>
-            {slideData?.tagline || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna"}
+            {slideData?.tagline !== undefined && slideData?.tagline !== null 
+              ? slideData.tagline 
+              : "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna"}
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-x-10 gap-y-6">

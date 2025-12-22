@@ -79,7 +79,9 @@ const NumberedBulletsSlideLayout: React.FC<NumberedBulletsSlideLayoutProps> = ({
                         {/* Title Section */}
                         <div className="flex-1 pr-8">
                             <h1 style={{ color: "var(--text-heading-color,#111827)" }} className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
-                                {slideData?.title || 'Market Validation'}
+                                {slideData?.title !== undefined && slideData?.title !== null 
+                                    ? slideData.title 
+                                    : 'Market Validation'}
                             </h1>
                             {/* Purple accent line */}
                             <div style={{ background: "var(--text-heading-color,#9333ea)" }} className="w-24 h-1 bg-purple-600 mb-6"></div>
